@@ -2,14 +2,18 @@ import Fluent
 import Vapor
 
 func routes(_ app: Application) throws {
-    app.get { req async in
+
+    let protected = app
+        .grouped(DevelopmentAuthenticator())
+        .grouped(AuthenticatedUser.guardMiddleware())
+
+    try protected.register(collection: ConversationController())
+    try protected.register(collection: MessageController())
+        app.get { req async in
         "It works!"
     }
 
     app.get("hello") { req async -> String in
         "Hello, world!"
     }
-
-    try app.register(collection: ConversationController())
-    try app.register(collection: MessageController())
 }

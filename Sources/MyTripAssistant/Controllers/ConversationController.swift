@@ -2,9 +2,6 @@ import Fluent
 import Vapor
 import Foundation
 
-struct CreateConversationRequest: Content {
-    let userID: UUID
-}
 
 struct ConversationResponse: Content {
     let userID: UUID
@@ -15,12 +12,11 @@ struct ConversationResponse: Content {
 struct ConversationController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         routes.post("conversation", use: getOrCreate)
-        routes.get("conversation", ":userID", use: getConversation)
+        routes.get("conversation", use: getConversation)
     }
 
     func getOrCreate(req: Request) async throws -> ConversationResponse {
-        let payload = try req.content.decode(CreateConversationRequest.self)
-        let userID = payload.userID
+        let userID = try req.auth.require(AuthenticatedUser.self).id
 
         let conversation: Conversation
 
@@ -36,9 +32,7 @@ struct ConversationController: RouteCollection {
     }
 
     func getConversation(req: Request) async throws -> ConversationResponse {
-        guard let userID = req.parameters.get("userID", as: UUID.self) else {
-            throw Abort(.badRequest, reason: "Invalid user ID")
-        }
+        let userID = try req.auth.require(AuthenticatedUser.self).id
 
         guard let conversation = try await Conversation.find(userID, on: req.db) else {
             throw Abort(.notFound, reason: "Conversation not found")

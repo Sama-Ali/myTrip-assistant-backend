@@ -26,14 +26,12 @@ struct CreateMessageRequest: Content {
 
 struct MessageController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
-        routes.post("conversation", ":userID", "messages", use: createMessage)
-        routes.get("conversation", ":userID", "messages", use: listMessages)
-    }
+    routes.post("conversation", "messages", use: createMessage)
+    routes.get("conversation", "messages", use: listMessages)
+}
 
     func createMessage(req: Request) async throws -> MessageResponse {
-        guard let userID = req.parameters.get("userID", as: UUID.self) else {
-            throw Abort(.badRequest, reason: "Invalid user ID")
-        }
+        let userID = try req.auth.require(AuthenticatedUser.self).id
 
         let payload = try req.content.decode(CreateMessageRequest.self)
 
@@ -74,9 +72,7 @@ struct MessageController: RouteCollection {
     }
 
     func listMessages(req: Request) async throws -> Page<MessageResponse> {
-        guard let userID = req.parameters.get("userID", as: UUID.self) else {
-            throw Abort(.badRequest, reason: "Invalid user ID")
-        }
+       let userID = try req.auth.require(AuthenticatedUser.self).id
 
         guard let conversation = try await Conversation.find(userID, on: req.db) else {
             throw Abort(.notFound, reason: "Conversation not found")
