@@ -19,6 +19,9 @@ func configure(_ app: Application) async throws {
 
     app.migrations.add(CreateConversation())
     app.migrations.add(CreateMessage())
-    // register routes
+
+    // ================================ this will be replaced with the actual assistant service ================================
+    app.assistantService = MockAssistantService()
+    
     try routes(app)
 }

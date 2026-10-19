@@ -8,7 +8,7 @@ struct DevelopmentAuthenticator: AsyncBearerAuthenticator {
         bearer: BearerAuthorization,
         for request: Request
     ) async throws {
-        // Never authenticate with development tokens in production.
+        // ================================ Never authenticate with development tokens in production ================================
         guard request.application.environment == .development else {
             throw Abort(
                 .forbidden,
