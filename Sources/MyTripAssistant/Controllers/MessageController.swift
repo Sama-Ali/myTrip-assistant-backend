@@ -1,6 +1,13 @@
+// ================================ Save user message → Load history → Call AI → Save assistant reply ================================
+
 import Fluent
 import Vapor
 import Foundation
+
+// ================================ User’s text ================================
+struct CreateMessageRequest: Content {
+    let content: String
+}
 
 struct MessageResponse: Content {
     let id: UUID
@@ -20,8 +27,10 @@ struct MessageResponse: Content {
     }
 }
 
-struct CreateMessageRequest: Content {
-    let content: String
+// ================================ Backend → App ================================
+struct ChatResponse: Content {
+    let userMessage: MessageResponse       // Saved user's message
+    let assistantMessage: MessageResponse  // Saved assistant's reply
 }
 
 struct MessageController: RouteCollection {
@@ -30,9 +39,51 @@ struct MessageController: RouteCollection {
     routes.get("conversation", "messages", use: listMessages)
 }
 
-    func createMessage(req: Request) async throws -> MessageResponse {
-        let userID = try req.auth.require(AuthenticatedUser.self).id
+    private func saveMessage(
+        userID: UUID,
+        sender: MessageSender,
+        content: String,
+        req: Request
 
+        ) async throws -> Message {
+
+        try await req.db.transaction { database in
+            guard let conversation = try await Conversation.find(
+                userID,
+             on: database
+         ) else {
+                throw Abort(.notFound, reason: "Conversation not found")
+            }
+
+            // Update conversation updatedAt timestamp
+            try await Conversation.query(on: database)
+                .filter(\.$id == userID)
+                .set(\.$updatedAt, to: Date())
+                .update()
+
+            let lastSequence = try await Message.query(on: database)
+                // 1- Sort by sequence number, largest first.
+                .filter(\.$conversation.$id == userID)
+                // 2- Take the first message’s number.
+                .sort(\.$sequenceNumber, .descending)
+                // 3- If no message exists, use 0.
+                .first()?.sequenceNumber ?? 0
+
+            // Create new message with the next sequence number
+            let message = Message(
+                conversationID: try conversation.requireID(),
+                sender: sender,
+                content: content,
+                sequenceNumber: lastSequence + 1
+            )
+
+            try await message.save(on: database)
+            return message
+        }
+    }
+
+    func createMessage(req: Request) async throws -> ChatResponse {
+        let userID = try req.auth.require(AuthenticatedUser.self).id
         let payload = try req.content.decode(CreateMessageRequest.self)
 
         let content = payload.content.trimmingCharacters(
@@ -43,33 +94,62 @@ struct MessageController: RouteCollection {
             throw Abort(.badRequest, reason: "Content cannot be empty")
         }
 
-        let message = try await req.db.transaction { database in
-            guard let conversation = try await Conversation.find(userID, on: database) else {
-                throw Abort(.notFound, reason: "Conversation not found")
-            }
+        // 1. Save the user's message.
+        let userMessage = try await saveMessage(
+          userID: userID,
+          sender: .user,
+          content: content,
+          req: req
+        )
 
-            try await Conversation.query(on: database)
-                .filter(\.$id == userID)
-                .set(\.$updatedAt, to: Date())
-                .update()
+        // 2. Fetch the latest 20 messages up to this message.
+        let history = try await Message.query(on: req.db)
+            .filter(\.$conversation.$id == userID)
+            .filter(\.$sequenceNumber <= userMessage.sequenceNumber)
+            .sort(\.$sequenceNumber, .descending)
+            .limit(20)
+            .all()
 
-            let lastSequence = try await Message.query(on: database)
-                .filter(\.$conversation.$id == userID)
-                .sort(\.$sequenceNumber, .descending)
-                .first()?.sequenceNumber ?? 0
-
-            let message = Message(
-                conversationID: try conversation.requireID(),
-                sender: .user,
-                content: content,
-                sequenceNumber: lastSequence + 1
+     // Restore chronological order.
+        let context = history.reversed().map {
+            AssistantMessage(
+                role: $0.sender,
+                content: $0.content
             )
-            try await message.save(on: database)
-            return message
+     }
+
+        // build the assistant request (context messages)
+        let assistantRequest = AssistantRequest(
+            requestID: try userMessage.requireID(),
+        messages: context
+        )
+
+        // 3. Call the AI service without holding a database transaction.
+        let response = try await req.application.assistantService.reply(
+           to: assistantRequest
+        )
+
+        let reply = response.reply.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        guard !reply.isEmpty else {
+            throw Abort(.badGateway, reason: "AI service returned an empty reply")
         }
 
-        return try MessageResponse(message: message)
-    }
+     // 4. Save the assistant's reply.
+        let assistantMessage = try await saveMessage(
+            userID: userID,
+            sender: .assistant,
+            content: reply,
+            req: req
+        )
+
+        return try ChatResponse(
+           userMessage: MessageResponse(message: userMessage),
+        assistantMessage: MessageResponse(message: assistantMessage)
+        )
+}
 
     func listMessages(req: Request) async throws -> Page<MessageResponse> {
        let userID = try req.auth.require(AuthenticatedUser.self).id
