@@ -22,6 +22,12 @@ func configure(_ app: Application) async throws {
 
     // ================================ this will be replaced with the actual assistant service ================================
     app.assistantService = MockAssistantService()
+
+    let sampleFlights = try FlightSampleData.make()
+
+    app.flightStatusService = MockFlightStatusService(
+        flights: sampleFlights
+    )
     
     try routes(app)
 }
