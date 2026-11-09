@@ -21,5 +21,8 @@ struct AssistantResponse: Content, Sendable {
 protocol AssistantService: Sendable {
     func reply(
         to request: AssistantRequest
+        // ================================ the function can either: ================================
+        // ================================ - Succeed: return an AssistantResponse. ================================
+        // ================================ - Fail: throw an error instead of returning a response. ================================
     ) async throws -> AssistantResponse
 }

@@ -129,19 +129,11 @@ struct MessageController: RouteCollection {
            to: assistantRequest
         )
 
-        let reply = response.reply.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-
-        guard !reply.isEmpty else {
-            throw Abort(.badGateway, reason: "AI service returned an empty reply")
-        }
-
-     // 4. Save the assistant's reply.
+        // 4. Save the assistant's reply.
         let assistantMessage = try await saveMessage(
             userID: userID,
             sender: .assistant,
-            content: reply,
+            content: response.reply,
             req: req
         )
 
