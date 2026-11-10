@@ -1,13 +1,10 @@
 import Vapor
-
 struct FlightStatusController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         routes.post("tools", "flight-status", use: getFlightStatus)
     }
-
     func getFlightStatus(req: Request) async throws -> Response {
 let payload: FlightStatusRequest
-
 do {
     payload = try req.content.decode(FlightStatusRequest.self)
 } catch DecodingError.keyNotFound(let key, _)
@@ -64,7 +61,6 @@ do {
     )
 }
         let validatedRequest: FlightStatusRequest
-
         do {
             validatedRequest = try FlightStatusRequestValidator.validate(
                 payload
@@ -75,37 +71,29 @@ do {
                 status: .badRequest
             )
         }
-
         let result = try await req.application.flightStatusService
             .getFlightStatus(request: validatedRequest)
-
         switch result {
         case .success(let flight):
             let response = Response(status: .ok)
             try response.content.encode(flight)
             return response
-
         case .failure(let error):
             let status: HTTPResponseStatus
-
             switch error.error.code {
             case .missingInput, .invalidFlightNumber, .invalidDate:
                 status = .badRequest
-
             case .flightNotFound:
                 status = .notFound
-
             case .sourceUnavailable:
                 status = .serviceUnavailable
             }
-
             return try makeErrorResponse(error, status: status)
         }
     }
-
     private func makeErrorResponse(
         _ error: ToolErrorResponse,
-        status: HTTPResponseStatus
+status: HTTPResponseStatus
     ) throws -> Response {
         let response = Response(status: status)
         try response.content.encode(error)
