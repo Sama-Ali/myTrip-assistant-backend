@@ -10,6 +10,7 @@ func routes(_ app: Application) throws {
     try protected.register(collection: ConversationController())
     try protected.register(collection: MessageController())
     try protected.register(collection: FlightStatusController())
+    try protected.register(collection: BookingDetailsController())
         app.get { req async in
         "It works!"
     }

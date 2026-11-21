@@ -1,15 +1,25 @@
 import Vapor
 
-enum FlightToolErrorCode: String, Codable, Sendable {
+enum ToolErrorCode: String, Codable, Sendable {
+    // Shared
+    case sourceUnavailable = "SOURCE_UNAVAILABLE"
+
+    // Flight
     case missingInput = "MISSING_INPUT"
     case invalidFlightNumber = "INVALID_FLIGHT_NUMBER"
     case invalidDate = "INVALID_DATE"
     case flightNotFound = "FLIGHT_NOT_FOUND"
-    case sourceUnavailable = "SOURCE_UNAVAILABLE"
+
+    // Booking
+    case unauthenticated = "UNAUTHENTICATED"
+    case bookingNotFound = "BOOKING_NOT_FOUND"
+    case ambiguousBooking = "AMBIGUOUS_BOOKING"
+    case forbidden = "FORBIDDEN"
+    case invalidBookingReference = "INVALID_BOOKING_REFERENCE"
 }
 
 struct ToolErrorBody: Content {
-    let code: FlightToolErrorCode
+    let code: ToolErrorCode
     let message: String
     let retryable: Bool
     let missing: [String]?
@@ -18,4 +28,31 @@ struct ToolErrorBody: Content {
 struct ToolErrorResponse: Content {
     let ok: Bool = false
     let error: ToolErrorBody
+}
+
+extension ToolErrorCode {
+    var httpStatus: HTTPResponseStatus {
+        switch self {
+        case .missingInput,
+             .invalidFlightNumber,
+             .invalidDate,
+             .invalidBookingReference:
+            return .badRequest
+
+        case .flightNotFound, .bookingNotFound:
+            return .notFound
+
+        case .unauthenticated:
+            return .unauthorized
+
+        case .forbidden:
+            return .forbidden
+
+        case .ambiguousBooking:
+            return .conflict
+
+        case .sourceUnavailable:
+            return .serviceUnavailable
+        }
+    }
 }
