@@ -3,6 +3,7 @@ import Vapor
 enum ToolErrorCode: String, Codable, Sendable {
     // Shared
     case sourceUnavailable = "SOURCE_UNAVAILABLE"
+    case badSourceData = "BAD_SOURCE_DATA"
 
     // Flight
     case missingInput = "MISSING_INPUT"
@@ -53,6 +54,9 @@ extension ToolErrorCode {
 
         case .sourceUnavailable:
             return .serviceUnavailable
+
+        case .badSourceData:
+            return .badGateway
         }
     }
 }

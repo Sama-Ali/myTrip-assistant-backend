@@ -61,16 +61,25 @@ struct FlightStatusController: RouteCollection {
         // 4. Return the result as JSON.
         switch result {
         case .success(let flight):
-            let response = Response(status: .ok)
-            try response.content.encode(flight)
-            return response
-
-       case .failure(let error):
-           return try makeErrorResponse(
-                 error,
-                 status: error.error.code.httpStatus
-             )
+        do {
+            try FlightStatusResponseValidator.validate(flight)
+        } catch let error as FlightResponseValidationError {
+            return try makeErrorResponse(
+                ToolErrorResponse(error: error.body),
+                status: error.body.code.httpStatus
+            )
         }
+
+        let response = Response(status: .ok)
+        try response.content.encode(flight)
+        return response
+
+        case .failure(let error):
+            return try makeErrorResponse(
+                  error,
+                  status: error.error.code.httpStatus
+              )
+         }
     }
 
     // Builds a structured 400 response for invalid input.

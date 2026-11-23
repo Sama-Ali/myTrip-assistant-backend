@@ -15,9 +15,13 @@ enum FlightSampleData {
         return [
             FlightStatusResponse(
                 flightNumber: "SV1021",
+                marketingAirline: Airline(code: "SV", name: "Saudia"),
+                operatingAirline: Airline(code: "SV", name: "Saudia"),
+                operatingFlightNumber: nil,
                 date: "2026-11-10",
                 status: .delayed,
-                delayMinutes: 25,
+                departureDelayMinutes: 25,
+                arrivalDelayMinutes: nil,
                 origin: "RUH",
                 destination: "JED",
                 scheduledDeparture: try timestamp(
@@ -26,8 +30,11 @@ enum FlightSampleData {
                 estimatedDeparture: try timestamp(
                     "2026-11-10T16:55:00+03:00"
                 ),
+                actualDeparture: nil,
                 scheduledArrival: nil,
                 estimatedArrival: nil,
+                actualArrival: nil,
+                cancellationNotifiedAt: nil,
                 terminal: "5",
                 gate: nil,
                 updatedAt: try timestamp(
@@ -37,17 +44,24 @@ enum FlightSampleData {
             ),
             FlightStatusResponse(
                 flightNumber: "SV1022",
+                marketingAirline: Airline(code: "SV", name: "Saudia"),
+                operatingAirline: Airline(code: "SV", name: "Saudia"),
+                operatingFlightNumber: nil,
                 date: "2026-11-10",
                 status: .scheduled,
-                delayMinutes: 0,
+                departureDelayMinutes: 0,
+                arrivalDelayMinutes: nil,
                 origin: "JED",
                 destination: "RUH",
                 scheduledDeparture: try timestamp(
                     "2026-11-10T18:00:00+03:00"
                 ),
                 estimatedDeparture: nil,
+                actualDeparture: nil,
                 scheduledArrival: nil,
                 estimatedArrival: nil,
+                actualArrival: nil,
+                cancellationNotifiedAt: nil,
                 terminal: "1",
                 gate: "A12",
                 updatedAt: try timestamp(
