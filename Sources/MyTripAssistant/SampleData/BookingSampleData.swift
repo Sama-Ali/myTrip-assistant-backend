@@ -14,7 +14,9 @@ enum BookingSampleData {
                     date: "2026-11-10",
                     cabinClass: .economy,
                     seat: "14C",
-                    baggageAllowanceKg: 23
+                    baggageAllowanceKg: nil,
+                    baggageAllowancePieces: 2,
+                    baggagePieceMaxKg: 23
                 )
             ),
             SampleBooking(
@@ -25,7 +27,9 @@ enum BookingSampleData {
                     date: "2026-11-20",
                     cabinClass: .business,
                     seat: "2A",
-                    baggageAllowanceKg: 32
+                    baggageAllowanceKg: 32,
+                    baggageAllowancePieces: nil,
+                    baggagePieceMaxKg: nil
                 )
             ),
             SampleBooking(
@@ -36,7 +40,9 @@ enum BookingSampleData {
                     date: "2026-11-12",
                     cabinClass: .economy,
                     seat: nil,
-                    baggageAllowanceKg: 23
+                    baggageAllowanceKg: 23,
+                    baggageAllowancePieces: nil,
+                    baggagePieceMaxKg: nil
                 )
             )
         ]

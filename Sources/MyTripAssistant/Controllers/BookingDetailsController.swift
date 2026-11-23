@@ -54,6 +54,14 @@ struct BookingDetailsController: RouteCollection {
         // 5. Return the result.
         switch result {
         case .success(let booking):
+            do {
+                try BookingDetailsResponseValidator.validate(booking)
+            } catch let error as BookingResponseValidationError {
+                return try makeErrorResponse(
+                    ToolErrorResponse(error: error.body)
+                )
+            }
+
             let response = Response(status: .ok)
             try response.content.encode(booking)
             return response

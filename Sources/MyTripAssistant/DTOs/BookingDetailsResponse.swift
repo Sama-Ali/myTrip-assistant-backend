@@ -15,7 +15,9 @@ struct BookingDetailsResponse: Content {
     let date: String
     let cabinClass: CabinClass
     let seat: String?
-    let baggageAllowanceKg: Int
+    let baggageAllowanceKg: Int?
+    let baggageAllowancePieces: Int?
+    let baggagePieceMaxKg: Int?
 
     enum CodingKeys: String, CodingKey {
         case ok
@@ -25,6 +27,8 @@ struct BookingDetailsResponse: Content {
         case cabinClass = "cabin_class"
         case seat
         case baggageAllowanceKg = "baggage_allowance_kg"
+        case baggageAllowancePieces = "baggage_allowance_pieces"
+        case baggagePieceMaxKg = "baggage_piece_max_kg"
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -39,6 +43,14 @@ struct BookingDetailsResponse: Content {
         try container.encode(
             baggageAllowanceKg,
             forKey: .baggageAllowanceKg
+        )
+        try container.encode(
+            baggageAllowancePieces,
+            forKey: .baggageAllowancePieces
+        )
+        try container.encode(
+            baggagePieceMaxKg,
+            forKey: .baggagePieceMaxKg
         )
     }
 }
