@@ -4,6 +4,8 @@ enum ToolErrorCode: String, Codable, Sendable {
     // Shared
     case sourceUnavailable = "SOURCE_UNAVAILABLE"
     case badSourceData = "BAD_SOURCE_DATA"
+    case invalidRequest = "INVALID_REQUEST"
+    case unsupportedMediaType = "UNSUPPORTED_MEDIA_TYPE"
 
     // Flight
     case missingInput = "MISSING_INPUT"
@@ -35,6 +37,7 @@ extension ToolErrorCode {
     var httpStatus: HTTPResponseStatus {
         switch self {
         case .missingInput,
+             .invalidRequest,
              .invalidFlightNumber,
              .invalidDate,
              .invalidBookingReference:
@@ -57,6 +60,9 @@ extension ToolErrorCode {
 
         case .badSourceData:
             return .badGateway
+
+        case .unsupportedMediaType:
+            return .unsupportedMediaType    
         }
     }
 }

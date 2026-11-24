@@ -121,7 +121,8 @@ struct MessageController: RouteCollection {
         // build the assistant request (context messages)
         let assistantRequest = AssistantRequest(
             requestID: try userMessage.requireID(),
-        messages: context
+            userID: userID,
+            messages: context
         )
 
         // 3. Call the AI service without holding a database transaction.

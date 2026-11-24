@@ -11,6 +11,7 @@ struct AssistantMessage: Codable, Sendable {
 
 struct AssistantRequest: Codable, Sendable {
     let requestID: UUID
+    let userID: UUID
     let messages: [AssistantMessage]
 }
 

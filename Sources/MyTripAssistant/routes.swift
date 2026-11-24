@@ -9,11 +9,14 @@ func routes(_ app: Application) throws {
 
     try protected.register(collection: ConversationController())
     try protected.register(collection: MessageController())
-    try protected.register(collection: FlightStatusController())
-    try protected.register(collection: BookingDetailsController())
         app.get { req async in
         "It works!"
     }
+
+    let toolRoutes = app.grouped(DevelopmentAuthenticator())
+
+    try toolRoutes.register(collection: FlightStatusController())
+    try toolRoutes.register(collection: BookingDetailsController())
 
     app.get("hello") { req async -> String in
         "Hello, world!"
@@ -31,8 +34,11 @@ func routes(_ app: Application) throws {
         throw Abort(.badRequest, reason: "Content cannot be empty")
     }
 
+    let userID = try req.auth.require(AuthenticatedUser.self).id
+
     let request = AssistantRequest(
         requestID: UUID(),
+        userID: userID,
         messages: [
             AssistantMessage(role: .user, content: content)
         ]

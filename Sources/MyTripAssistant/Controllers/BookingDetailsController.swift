@@ -8,7 +8,29 @@ struct BookingDetailsController: RouteCollection {
 
     func getBookingDetails(req: Request) async throws -> Response {
         // 1. Get the trusted user identity.
-        let userID = try req.auth.require(AuthenticatedUser.self).id
+        guard let user = req.auth.get(AuthenticatedUser.self) else {
+            return try makeErrorResponse(
+                ToolErrorResponse(
+                    error: ToolErrorBody(
+                        code: .unauthenticated,
+                        message: "Authentication is required",
+                        retryable: false,
+                        missing: nil
+                    )
+                )
+            )
+        }
+
+        let userID = user.id
+
+        guard let contentType = req.headers.contentType,
+            contentType.type.lowercased() == "application" &&
+            contentType.subType.lowercased() == "json" else {
+            return try inputError(
+                code: .unsupportedMediaType,
+                message: "Content-Type must be application/json"
+            )
+        }
 
         // 2. Decode the request.
         let payload: BookingDetailsRequest
@@ -29,6 +51,17 @@ struct BookingDetailsController: RouteCollection {
                 code: .invalidFlightNumber,
                 message: "flight_number must be a string"
             )
+        } catch is DecodingError {
+            return try inputError(
+                code: .invalidRequest,
+                message: "Request body must be a valid JSON object with the expected fields"
+            )
+        } catch let error as any AbortError
+            where error.status == .unsupportedMediaType {
+           return try inputError(
+               code: .unsupportedMediaType,
+               message: "Content-Type must be application/json"
+           )
         }
 
         // 3. Normalize and validate the optional filters.

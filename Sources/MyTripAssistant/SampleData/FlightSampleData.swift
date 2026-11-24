@@ -68,7 +68,71 @@ enum FlightSampleData {
                     "2026-11-10T15:10:00+03:00"
                 ),
                 source: "mock"
-            )
+            ),
+            FlightStatusResponse(
+                flightNumber: "SV1023",
+                marketingAirline: Airline(code: "SV", name: "Saudia"),
+                operatingAirline: Airline(code: "SV", name: "Saudia"),
+                operatingFlightNumber: nil,
+                date: "2026-11-10",
+                status: .landed,
+                departureDelayMinutes: 15,
+                arrivalDelayMinutes: 10,
+                origin: "RUH",
+                destination: "JED",
+                scheduledDeparture: try timestamp(
+                    "2026-11-10T10:00:00+03:00"
+                ),
+                estimatedDeparture: nil,
+                actualDeparture: try timestamp(
+                    "2026-11-10T10:15:00+03:00"
+                ),
+                scheduledArrival: try timestamp(
+                    "2026-11-10T12:00:00+03:00"
+                ),
+                estimatedArrival: nil,
+                actualArrival: try timestamp(
+                    "2026-11-10T12:10:00+03:00"
+                ),
+                cancellationNotifiedAt: nil,
+                terminal: "5",
+                gate: "B10",
+                updatedAt: try timestamp(
+                    "2026-11-10T12:15:00+03:00"
+                ),
+                source: "mock"
+            ),
+            FlightStatusResponse(
+    flightNumber: "SV1024",
+    marketingAirline: Airline(code: "SV", name: "Saudia"),
+    operatingAirline: Airline(code: "SV", name: "Saudia"),
+    operatingFlightNumber: nil,
+    date: "2026-11-10",
+    status: .cancelled,
+    departureDelayMinutes: 0,
+    arrivalDelayMinutes: nil,
+    origin: "JED",
+    destination: "RUH",
+    scheduledDeparture: try timestamp(
+        "2026-11-10T18:00:00+03:00"
+    ),
+    estimatedDeparture: nil,
+    actualDeparture: nil,
+    scheduledArrival: try timestamp(
+        "2026-11-10T20:00:00+03:00"
+    ),
+    estimatedArrival: nil,
+    actualArrival: nil,
+    cancellationNotifiedAt: try timestamp(
+        "2026-11-10T14:00:00+03:00"
+    ),
+    terminal: nil,
+    gate: nil,
+    updatedAt: try timestamp(
+        "2026-11-10T14:05:00+03:00"
+    ),
+    source: "mock"
+)
         ]
     }
 

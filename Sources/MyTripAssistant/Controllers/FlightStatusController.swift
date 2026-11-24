@@ -9,6 +9,29 @@ struct FlightStatusController: RouteCollection {
     func getFlightStatus(req: Request) async throws -> Response {
         let payload: FlightStatusRequest
 
+        guard req.auth.has(AuthenticatedUser.self) else {
+            return try makeErrorResponse(
+                ToolErrorResponse(
+                    error: ToolErrorBody(
+                        code: .unauthenticated,
+                        message: "Authentication is required",
+                        retryable: false,
+                        missing: nil
+                    )
+                ),
+                status: .unauthorized
+            )
+        }
+
+        guard let contentType = req.headers.contentType,
+            contentType.type.lowercased() == "application" &&
+            contentType.subType.lowercased() == "json" else {
+            return try inputError(
+                code: .unsupportedMediaType,
+                message: "Content-Type must be application/json"
+            )
+        }
+
         // 1. Decode the JSON request.
         do {
             payload = try req.content.decode(FlightStatusRequest.self)
@@ -38,6 +61,17 @@ struct FlightStatusController: RouteCollection {
                 code: .invalidDate,
                 message: "date must be a string in YYYY-MM-DD format"
             )
+        } catch is DecodingError {
+            return try inputError(
+                code: .invalidRequest,
+                message: "Request body must be a valid JSON object with the expected fields"
+            )
+        } catch let error as any AbortError
+            where error.status == .unsupportedMediaType {
+           return try inputError(
+               code: .unsupportedMediaType,
+               message: "Content-Type must be application/json"
+           )
         }
 
         // 2. Normalize and validate the input.
@@ -50,7 +84,7 @@ struct FlightStatusController: RouteCollection {
         } catch let error as FlightRequestValidationError {
             return try makeErrorResponse(
                 ToolErrorResponse(error: error.body),
-                status: .badRequest
+                status: error.body.code.httpStatus
             )
         }
 
@@ -61,28 +95,28 @@ struct FlightStatusController: RouteCollection {
         // 4. Return the result as JSON.
         switch result {
         case .success(let flight):
-        do {
-            try FlightStatusResponseValidator.validate(flight)
-        } catch let error as FlightResponseValidationError {
-            return try makeErrorResponse(
-                ToolErrorResponse(error: error.body),
-                status: error.body.code.httpStatus
-            )
-        }
+            do {
+                try FlightStatusResponseValidator.validate(flight)
+            } catch let error as FlightResponseValidationError {
+                return try makeErrorResponse(
+                    ToolErrorResponse(error: error.body),
+                    status: error.body.code.httpStatus
+                )
+            }
 
-        let response = Response(status: .ok)
-        try response.content.encode(flight)
-        return response
+            let response = Response(status: .ok)
+            try response.content.encode(flight)
+            return response
 
         case .failure(let error):
             return try makeErrorResponse(
-                  error,
-                  status: error.error.code.httpStatus
-              )
-         }
+                error,
+                status: error.error.code.httpStatus
+            )
+        }
     }
 
-    // Builds a structured 400 response for invalid input.
+    // Builds a structured input error response.
     private func inputError(
         code: ToolErrorCode,
         message: String,
@@ -97,7 +131,7 @@ struct FlightStatusController: RouteCollection {
                     missing: missing
                 )
             ),
-            status: .badRequest
+            status: code.httpStatus
         )
     }
 

@@ -1,84 +1,52 @@
 @testable import MyTripAssistant
-import VaporTesting
 import Testing
-import Fluent
+import Foundation
 
-@Suite("App Tests with DB", .serialized)
-struct MyTripAssistantTests {
-    private func withApp(_ test: (Application) async throws -> ()) async throws {
-        let app = try await Application.make(.testing)
-        do {
-            try await configure(app)
-            try await app.autoMigrate()
-            try await test(app)
-            try await app.autoRevert()
-        } catch {
-            try? await app.autoRevert()
-            try await app.asyncShutdown()
-            throw error
-        }
-        try await app.asyncShutdown()
-    }
-    
-    @Test("Test Hello World Route")
-    func helloWorld() async throws {
-        try await withApp { app in
-            try await app.testing().test(.GET, "hello", afterResponse: { res async in
-                #expect(res.status == .ok)
-                #expect(res.body.string == "Hello, world!")
-            })
+@Suite("Flight response validation")
+struct FlightStatusResponseValidatorTests {
+    @Test("Accepts all valid sample flights")
+    func acceptsValidSampleFlights() throws {
+        let flights = try FlightSampleData.make()
+
+        #expect(flights.count == 4)
+
+        for flight in flights {
+            try FlightStatusResponseValidator.validate(flight)
         }
     }
-    
-    @Test("Getting all the Todos")
-    func getAllTodos() async throws {
-        try await withApp { app in
-            let sampleTodos = [Todo(title: "sample1"), Todo(title: "sample2")]
-            try await sampleTodos.create(on: app.db)
-            
-            try await app.testing().test(.GET, "todos", afterResponse: { res async throws in
-                #expect(res.status == .ok)
-                #expect(try
-                    res.content.decode([TodoDTO].self).sorted(by: { ($0.title ?? "") < ($1.title ?? "") }) ==
-                    sampleTodos.map { $0.toDTO() }.sorted(by: { ($0.title ?? "") < ($1.title ?? "") })
-                )
-            })
-        }
-    }
-    
-    @Test("Creating a Todo")
-    func createTodo() async throws {
-        let newDTO = TodoDTO(id: nil, title: "test")
-        
-        try await withApp { app in
-            try await app.testing().test(.POST, "todos", beforeRequest: { req in
-                try req.content.encode(newDTO)
-            }, afterResponse: { res async throws in
-                #expect(res.status == .ok)
-                let models = try await Todo.query(on: app.db).all()
-                #expect(models.map({ $0.toDTO().title }) == [newDTO.title])
-            })
-        }
-    }
-    
-    @Test("Deleting a Todo")
-    func deleteTodo() async throws {
-        let testTodos = [Todo(title: "test1"), Todo(title: "test2")]
-        
-        try await withApp { app in
-            try await testTodos.create(on: app.db)
-            
-            try await app.testing().test(.DELETE, "todos/\(testTodos[0].requireID())", afterResponse: { res async throws in
-                #expect(res.status == .noContent)
-                let model = try await Todo.find(testTodos[0].id, on: app.db)
-                #expect(model == nil)
-            })
-        }
+
+    @Test("Rejects a landed flight without actual arrival")
+func rejectsLandedFlightWithoutArrival() throws {
+    let flight = FlightStatusResponse(
+        flightNumber: "SV1023",
+        marketingAirline: Airline(code: "SV", name: "Saudia"),
+        operatingAirline: Airline(code: "SV", name: "Saudia"),
+        operatingFlightNumber: nil,
+        date: "2026-11-10",
+        status: .landed,
+        departureDelayMinutes: 0,
+        arrivalDelayMinutes: nil,
+        origin: "RUH",
+        destination: "JED",
+        scheduledDeparture: Date(timeIntervalSince1970: 1_800_000_000),
+        estimatedDeparture: nil,
+        actualDeparture: Date(timeIntervalSince1970: 1_800_000_000),
+        scheduledArrival: nil,
+        estimatedArrival: nil,
+        actualArrival: nil, // الخطأ المقصود
+        cancellationNotifiedAt: nil,
+        terminal: nil,
+        gate: nil,
+        updatedAt: Date(timeIntervalSince1970: 1_800_000_100),
+        source: "mock"
+    )
+
+    do {
+        try FlightStatusResponseValidator.validate(flight)
+        Issue.record("Expected validation to reject missing actual_arrival")
+    } catch let error as FlightResponseValidationError {
+        #expect(error.missing == ["actual_arrival"])
+        #expect(error.body.code == .badSourceData)
     }
 }
-
-extension TodoDTO: Equatable {
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id && lhs.title == rhs.title
-    }
 }
